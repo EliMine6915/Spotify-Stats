@@ -31,7 +31,10 @@ const PORT = process.env.PORT || 3001;
 // ============================================
 // MIDDLEWARE
 // ============================================
-app.use(cors());
+app.use(cors({
+  origin: ['https://trackify-kayh.onrender.com', 'http://127.0.0.1:3001'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -84,7 +87,7 @@ const deduplicator = new DataDeduplication();
 // ============================================
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '9075e748e02649f09227d9b7d2eec38d';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || 'YOUR_CLIENT_SECRET_HERE';
-const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'http://127.0.0.1:3001/auth/callback';
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://trackify-kayh.onrender.com/auth/callback';
 const SPOTIFY_SCOPES = [
   'user-read-email',
   'user-read-recently-played',
