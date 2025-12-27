@@ -11,6 +11,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Allow frontend files (for Render configuration)
+backend/public/index.html
+backend/public/app.js
+backend/public/styles.css
+
 # Build output
 dist/
 build/

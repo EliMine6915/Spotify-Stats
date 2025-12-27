@@ -82,7 +82,7 @@ async function getUserTopArtists(timeRange = 'short_term', limit = 5) {
 }
 
 // Backend OAuth Configuration
-var BACKEND_URL = 'http://127.0.0.1:3001'; // Fixed backend URL
+var BACKEND_URL = 'https://trackify-kayh.onrender.com/'; // Fixed backend URL
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
