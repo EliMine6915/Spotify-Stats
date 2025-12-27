@@ -123,7 +123,7 @@ function setDashStatus(text) {
 async function startBackendLogin() {
   try {
     setStatus("Login wird gestartet...");
-    window.location.href = `${BACKEND_URL}auth/login`;
+    window.location.href = `${BACKEND_URL}/auth/login`;
   } catch (error) {
     setStatus(`Login-Fehler: ${error.message}`);
   }
