@@ -83,7 +83,7 @@ async function getUserTopArtists(timeRange = 'short_term', limit = 5) {
 
 // Backend OAuth Configuration
 // Dynamic backend URL - works for both local and Render
-var BACKEND_URL = window.location.origin;
+var BACKEND_URL = window.location.protocol + '//' + window.location.host;
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
@@ -308,8 +308,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update URL displays
   const currentUrl = document.getElementById('currentUrl');
   const redirectUriDash = document.getElementById('redirectUriDash');
-  if (currentUrl) currentUrl.textContent = window.location.origin;
-  if (redirectUriDash) redirectUriDash.textContent = window.location.origin;
+  const url = window.location.protocol + '//' + window.location.host;
+  if (currentUrl) currentUrl.textContent = url;
+  if (redirectUriDash) redirectUriDash.textContent = url;
   
   const playPauseBtn = document.getElementById('playPauseBtn');
   const previousBtn = document.getElementById('previousBtn');
