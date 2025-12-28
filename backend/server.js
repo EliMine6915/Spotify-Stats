@@ -32,7 +32,7 @@ const PORT = process.env.PORT || 3001;
 // MIDDLEWARE
 // ============================================
 app.use(cors({
-  origin: ['https://trackify-kayh.onrender.com', 'http://127.0.0.1:3001'],
+  origin: ['https://trackify-kayh.onrender.com'],
   credentials: true
 }));
 app.use(express.json());
