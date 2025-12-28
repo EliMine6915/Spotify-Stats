@@ -82,7 +82,8 @@ async function getUserTopArtists(timeRange = 'short_term', limit = 5) {
 }
 
 // Backend OAuth Configuration
-var BACKEND_URL = 'https://trackify-kayh.onrender.com'; // Fixed backend URL
+// Dynamic backend URL - works for both local and Render
+var BACKEND_URL = window.location.origin;
 
 // Helper function for API calls
 async function apiCall(endpoint, options = {}) {
@@ -233,6 +234,19 @@ async function updateMiniplayer() {
   const progressFill = document.getElementById('miniplayerProgressFill');
   
   try {
+    // Check if user is authenticated first
+    const authResponse = await apiCall('/auth/user');
+    if (!authResponse.ok) {
+      miniplayer.classList.add('hidden');
+      return;
+    }
+    
+    const userData = await authResponse.json();
+    if (!userData.authenticated) {
+      miniplayer.classList.add('hidden');
+      return;
+    }
+    
     const response = await apiCall('/api/currently-playing');
     
     if (response.status === 204 || !response.ok) {
@@ -291,6 +305,12 @@ setInterval(updateMiniplayer, 5000);
 
 // Miniplayer controls
 document.addEventListener('DOMContentLoaded', () => {
+  // Update URL displays
+  const currentUrl = document.getElementById('currentUrl');
+  const redirectUriDash = document.getElementById('redirectUriDash');
+  if (currentUrl) currentUrl.textContent = window.location.origin;
+  if (redirectUriDash) redirectUriDash.textContent = window.location.origin;
+  
   const playPauseBtn = document.getElementById('playPauseBtn');
   const previousBtn = document.getElementById('previousBtn');
   const nextBtn = document.getElementById('nextBtn');

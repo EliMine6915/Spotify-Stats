@@ -11,10 +11,11 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Allow frontend files (for Render configuration)
-backend/public/index.html
-backend/public/app.js
-backend/public/styles.css
+# Frontend files - allow access
+!backend/public/
+!backend/public/index.html
+!backend/public/app.js
+!backend/public/styles.css
 
 # Build output
 dist/
@@ -63,7 +64,6 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
