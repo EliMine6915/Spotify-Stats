@@ -190,10 +190,8 @@ function showLoggedOut() {
 }
 
 function showLoggedIn(displayName) {
-  console.log("showLoggedIn called, switching to dashboard UI");
-  const auth = document.getElementById("screenLoggedOut");
+  console.log("showLoggedIn called, showing dashboard");
   const dash = document.getElementById("screenDashboard");
-  if (auth) auth.classList.add("hidden");
   if (dash) dash.classList.remove("hidden");
 
   const userName = document.getElementById("userName");
@@ -207,9 +205,10 @@ function showLoggedIn(displayName) {
       badge.style.backgroundImage = `url(${backendImageUrl})`;
       badge.style.backgroundSize = "cover";
       badge.style.backgroundPosition = "center";
-      badge.textContent = "";
+      badge.textContent = '';
     } else {
-      badge.textContent = (displayName || "?").trim().slice(0, 2).toUpperCase();
+      badge.textContent = displayName.charAt(0).toUpperCase();
+      badge.style.backgroundImage = '';
     }
   }
 }
@@ -1116,10 +1115,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initUi() {
   console.log("initUi called");
-  document.getElementById("loginBtn").addEventListener("click", () => {
-    setStatus("");
-    startBackendLogin().catch((e) => setStatus(e?.message || String(e)));
-  });
+  
+  // Show dashboard directly
+  const userInfo = getBackendUserInfo();
+  showLoggedIn(userInfo.display_name);
+  
+  // Handle OAuth callback if present
+  handleBackendOAuthCallback();
 
   const logoutIcon = document.getElementById("logoutIcon");
   const logoutModal = document.getElementById("logoutModal");

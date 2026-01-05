@@ -51,16 +51,13 @@ app.use((req, res, next) => {
 
 // EXPLICIT ROOT ROUTE
 app.get('/', (req, res) => {
-  console.log('>>> ROOT ROUTE HIT <<<');
-  const indexPath = path.join(__dirname, 'public', 'index.html');
-  console.log('Sending file:', indexPath);
-  res.sendFile(indexPath);
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public'), {
-  index: 'index.html'
-}));
+// Dashboard route - serve main app
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ============================================
 // MULTER CONFIGURATION
@@ -284,7 +281,7 @@ app.get('/auth/callback', async (req, res) => {
     oauthSessions.delete(sessionId);
     res.clearCookie('oauth_session_id');
 
-    const redirectUrl = `/?login_success=true&user_id=${userProfile.id}&display_name=${encodeURIComponent(userProfile.display_name || userProfile.id)}&image_url=${encodeURIComponent(userProfile.images?.[0]?.url || '')}`;
+    const redirectUrl = `/app?login_success=true&user_id=${userProfile.id}&display_name=${encodeURIComponent(userProfile.display_name || userProfile.id)}&image_url=${encodeURIComponent(userProfile.images?.[0]?.url || '')}`;
     console.log(`OAuth login successful for user ${userProfile.id}`);
     res.redirect(redirectUrl);
   } catch (error) {
@@ -853,8 +850,6 @@ app.use((req, res, next) => {
 // ============================================
 app.listen(PORT, () => {
   console.log(`
-
-${window.location.protocol} // ${window.location.host}
 ╔═══════════════════════════════════════════════╗
 ║   Spotify Stats Backend                       ║
 ╚═══════════════════════════════════════════════╝
