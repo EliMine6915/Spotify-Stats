@@ -4,33 +4,48 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Trackify - Deine Spotify Statistiken</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <style>
-      /* Landing Page Specific Styles */
+      :root {
+        --bg: #070a0b;
+        --card: rgba(255, 255, 255, 0.06);
+        --card-border: rgba(255, 255, 255, 0.12);
+        --text: rgba(255, 255, 255, 0.92);
+        --muted: rgba(255, 255, 255, 0.7);
+        --muted-2: rgba(255, 255, 255, 0.55);
+        --panel: rgba(255, 255, 255, 0.055);
+        --panel-border: rgba(255, 255, 255, 0.09);
+        --panel-strong: rgba(255, 255, 255, 0.075);
+        --green: #1db954;
+        --green-hover: #1ed760;
+        --accent: rgba(255, 159, 79, 0.9);
+        --accent-soft: rgba(255, 159, 79, 0.18);
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+        --radius: 16px;
+        --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+
       .hero {
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 2rem;
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        background: var(--bg);
         position: relative;
         overflow: hidden;
-      }
-
-      .hero::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: radial-gradient(circle at 20% 50%, rgba(30, 215, 96, 0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 50%, rgba(30, 215, 96, 0.05) 0%, transparent 50%);
-        pointer-events: none;
       }
 
       .hero-content {
@@ -43,36 +58,37 @@
 
       .hero-badge {
         display: inline-block;
-        background: rgba(30, 215, 96, 0.1);
-        border: 1px solid rgba(30, 215, 96, 0.3);
-        color: #1ed760;
+        background: var(--accent-soft);
+        border: 1px solid var(--accent);
+        color: var(--accent);
         padding: 0.5rem 1rem;
-        border-radius: 999px;
+        border-radius: 12px;
         font-size: 0.875rem;
         font-weight: 600;
         margin-bottom: 2rem;
         backdrop-filter: blur(10px);
+        font-family: var(--font);
       }
 
       .hero-title {
         font-size: clamp(3rem, 8vw, 6rem);
-        font-weight: 900;
+        font-weight: 800;
         line-height: 1.1;
         margin-bottom: 1.5rem;
-        background: linear-gradient(135deg, #ffffff 0%, #1ed760 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: var(--text);
+        font-family: var(--font);
+        letter-spacing: 0.2px;
       }
 
       .hero-subtitle {
         font-size: clamp(1.25rem, 3vw, 1.75rem);
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--muted);
         margin-bottom: 3rem;
         line-height: 1.6;
         max-width: 600px;
         margin-left: auto;
         margin-right: auto;
+        font-family: var(--font);
       }
 
       .hero-cta {
@@ -84,46 +100,57 @@
       }
 
       .btn-primary {
-        background: linear-gradient(135deg, #1ed760 0%, #1db954 100%);
+        background: linear-gradient(180deg, var(--green-hover), var(--green));
         color: white;
         padding: 1rem 2rem;
-        border-radius: 999px;
-        font-weight: 600;
+        border-radius: 12px;
+        font-weight: 700;
         font-size: 1.125rem;
         text-decoration: none;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 20px rgba(30, 215, 96, 0.3);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+        font-family: var(--font);
       }
 
       .btn-primary:hover {
+        background: linear-gradient(180deg, #2afc74, var(--green-hover));
         transform: translateY(-2px);
-        box-shadow: 0 8px 30px rgba(30, 215, 96, 0.4);
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      }
+
+      .btn-primary:active {
+        transform: translateY(1px);
       }
 
       .btn-secondary {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: var(--panel);
+        color: var(--text);
         padding: 1rem 2rem;
-        border-radius: 999px;
+        border-radius: 12px;
         font-weight: 600;
         font-size: 1.125rem;
         text-decoration: none;
         transition: all 0.3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid var(--panel-border);
         backdrop-filter: blur(10px);
+        cursor: pointer;
+        font-family: var(--font);
       }
 
       .btn-secondary:hover {
-        background: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.3);
+        background: var(--panel-strong);
+        border-color: rgba(255, 255, 255, 0.12);
+        transform: translateY(-2px);
       }
 
       .features {
         padding: 6rem 2rem;
-        background: #0f0f0f;
+        background: var(--bg);
       }
 
       .features-container {
@@ -140,14 +167,17 @@
         font-size: clamp(2rem, 5vw, 3rem);
         font-weight: 800;
         margin-bottom: 1rem;
-        color: white;
+        color: var(--text);
+        font-family: var(--font);
+        letter-spacing: 0.2px;
       }
 
       .features-subtitle {
         font-size: 1.25rem;
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--muted);
         max-width: 600px;
         margin: 0 auto;
+        font-family: var(--font);
       }
 
       .features-grid {
@@ -158,24 +188,26 @@
       }
 
       .feature-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--card);
+        border: 1px solid var(--card-border);
         border-radius: 16px;
         padding: 2rem;
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
+        box-shadow: 0 12px 54px rgba(0, 0, 0, 0.28);
       }
 
       .feature-card:hover {
         transform: translateY(-4px);
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: var(--card);
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 16px 64px rgba(0, 0, 0, 0.35);
       }
 
       .feature-icon {
         width: 48px;
         height: 48px;
-        background: linear-gradient(135deg, #1ed760 0%, #1db954 100%);
+        background: var(--green);
         border-radius: 12px;
         display: flex;
         align-items: center;
@@ -188,23 +220,42 @@
         font-size: 1.25rem;
         font-weight: 700;
         margin-bottom: 1rem;
-        color: white;
+        color: var(--text);
+        font-family: var(--font);
       }
 
       .feature-description {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--muted);
         line-height: 1.6;
+        font-family: var(--font);
       }
 
       .stats {
         padding: 4rem 2rem;
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+        background: var(--panel);
       }
 
       .stats-container {
         max-width: 1200px;
         margin: 0 auto;
         text-align: center;
+      }
+
+      .stats-title {
+        font-size: clamp(2rem, 5vw, 3rem);
+        font-weight: 800;
+        margin-bottom: 1rem;
+        color: var(--text);
+        font-family: var(--font);
+        letter-spacing: 0.2px;
+      }
+
+      .stats-subtitle {
+        font-size: 1.25rem;
+        color: var(--muted);
+        max-width: 600px;
+        margin: 0 auto;
+        font-family: var(--font);
       }
 
       .stats-grid {
@@ -216,25 +267,39 @@
 
       .stat-item {
         text-align: center;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 2rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .stat-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.09);
+        transform: translateY(-2px);
       }
 
       .stat-number {
         font-size: 3rem;
         font-weight: 900;
-        color: #1ed760;
+        color: var(--green);
         margin-bottom: 0.5rem;
+        font-family: var(--font);
+        letter-spacing: 0.2px;
       }
 
       .stat-label {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--muted);
         font-size: 1.125rem;
+        font-family: var(--font);
       }
 
       .footer {
         padding: 3rem 2rem;
-        background: #0f0f0f;
+        background: var(--bg);
         text-align: center;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--panel-border);
       }
 
       .footer-content {
@@ -251,18 +316,21 @@
       }
 
       .footer-link {
-        color: rgba(255, 255, 255, 0.7);
+        color: var(--muted);
         text-decoration: none;
         transition: color 0.3s ease;
+        font-family: var(--font);
+        font-weight: 600;
       }
 
       .footer-link:hover {
-        color: #1ed760;
+        color: var(--green);
       }
 
       .footer-copyright {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--muted-2);
         font-size: 0.875rem;
+        font-family: var(--font);
       }
 
       @media (max-width: 768px) {
@@ -279,6 +347,10 @@
 
         .features-grid {
           grid-template-columns: 1fr;
+        }
+
+        .stats-grid {
+          grid-template-columns: repeat(2, 1fr);
         }
       }
     </style>
@@ -369,8 +441,8 @@
     <!-- Stats Section -->
     <section class="stats">
       <div class="stats-container">
-        <h2 class="features-title">Bereit für deine Musik?</h2>
-        <p class="features-subtitle">
+        <h2 class="stats-title">Bereit für deine Musik?</h2>
+        <p class="stats-subtitle">
           Tausende Nutzer vertrauen Trackify für ihre Spotify-Analyse
         </p>
         <div class="stats-grid">
