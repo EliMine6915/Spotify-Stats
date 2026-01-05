@@ -10,19 +10,10 @@ import fs from 'fs';
 import { supabase } from './supabase.js';
 import SpotifyHistoryImporter from './importSpotifyHistory.js';
 import DataDeduplication from './dataDeduplication.js';
-import SpotifyAPI from './spotify.js';
 
 // ES Module compatibility
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// CHECK IF INDEX.HTML EXISTS
-const indexPath = path.join(__dirname, 'public', 'index.html');
-console.log('========================================');
-console.log('Checking index.html:');
-console.log('Path:', indexPath);
-console.log('Exists:', fs.existsSync(indexPath));
-console.log('========================================');
 
 // Express App
 const app = express();
@@ -32,31 +23,98 @@ const PORT = process.env.PORT || 3001;
 // MIDDLEWARE
 // ============================================
 app.use(cors({
-  origin: ['https://trackify-kayh.onrender.com'],
+  origin: ['https://trackify-kayh.onrender.com', 'http://127.0.0.1:3001', 'http://localhost:3001'],
   credentials: true
 }));
 app.use(express.json());
 app.use(cookieParser());
 
-// DEBUG MIDDLEWARE - Log alle Requests
+// CRITICAL: Disable etag and caching for development
+app.set('etag', false);
 app.use((req, res, next) => {
-  console.log('======================');
-  console.log('Incoming Request:');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Path:', req.path);
-  console.log('======================');
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
   next();
 });
 
-// EXPLICIT ROOT ROUTE
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+// DEBUG MIDDLEWARE
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
 });
 
-// Dashboard route - serve main app
+// EXPLICIT STATIC FILE ROUTES (Before catch-all routes)
+app.get('/app.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'app.js');
+  if (!fs.existsSync(filePath)) {
+    console.error('app.js not found at:', filePath);
+    return res.status(404).send('app.js not found');
+  }
+  res.type('application/javascript').sendFile(filePath);
+});
+
+app.get('/style.css', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'style.css');
+  if (!fs.existsSync(filePath)) {
+    console.error('style.css not found at:', filePath);
+    return res.status(404).send('style.css not found');
+  }
+  res.type('text/css').sendFile(filePath);
+});
+
+app.get('/index.js', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'index.js');
+  if (!fs.existsSync(filePath)) {
+    console.error('index.js not found at:', filePath);
+    return res.status(404).send('index.js not found');
+  }
+  res.type('application/javascript').sendFile(filePath);
+});
+
+app.get('/favicon.ico', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'favicon.ico');
+  if (!fs.existsSync(filePath)) {
+    return res.status(204).end(); // No content for missing favicon
+  }
+  res.type('image/x-icon').sendFile(filePath);
+});
+
+// SERVE STATIC FILES (after explicit routes)
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  maxAge: 0,
+  setHeaders: (res, path) => {
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
+  }
+}));
+
+// ============================================
+// PAGE ROUTES
+// ============================================
+app.get('/', (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'home.html');
+  if (!fs.existsSync(filePath)) {
+    console.error('home.html not found at:', filePath);
+    return res.status(404).send('Home page not found');
+  }
+  res.sendFile(filePath);
+});
+
 app.get('/app', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const filePath = path.join(__dirname, 'public', 'index.html');
+  if (!fs.existsSync(filePath)) {
+    console.error('index.html not found at:', filePath);
+    return res.status(404).send('App page not found');
+  }
+  res.sendFile(filePath);
 });
 
 // ============================================
@@ -64,7 +122,7 @@ app.get('/app', (req, res) => {
 // ============================================
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.originalname.startsWith('StreamingHistory') || !file.originalname.endsWith('.json')) {
       return cb(new Error('Invalid filename. Must be StreamingHistory*.json'), false);
@@ -83,7 +141,7 @@ const deduplicator = new DataDeduplication();
 // CONFIGURATION
 // ============================================
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '9075e748e02649f09227d9b7d2eec38d';
-const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || 'YOUR_CLIENT_SECRET_HERE';
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || 'https://trackify-kayh.onrender.com/auth/callback';
 const SPOTIFY_SCOPES = [
   'user-read-email',
@@ -94,18 +152,77 @@ const SPOTIFY_SCOPES = [
   'user-top-read'
 ];
 
-// Validate environment
 if (!SPOTIFY_CLIENT_SECRET || SPOTIFY_CLIENT_SECRET === 'YOUR_CLIENT_SECRET_HERE') {
   console.error('ERROR: SPOTIFY_CLIENT_SECRET is required in .env file');
   process.exit(1);
 }
 
 const oauthSessions = new Map();
-const USER_ID = '123e4567-e89b-12d3-a456-426614174000';
 
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
+async function getCurrentUser() {
+  try {
+    const { data: tokens, error: tokenError } = await supabase
+      .from('user_tokens')
+      .select('user_id, expires_at, access_token, refresh_token')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (tokenError || !tokens) {
+      return null;
+    }
+    
+    // Check if token is expired
+    const expiresAt = new Date(tokens.expires_at);
+    if (expiresAt < new Date()) {
+      // Try to refresh the token
+      try {
+        const refreshResponse = await fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`,
+          },
+          body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: tokens.refresh_token,
+          }),
+        });
+
+        if (refreshResponse.ok) {
+          const newTokens = await refreshResponse.json();
+          const newExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000).toISOString();
+          
+          // Update tokens in database
+          await supabase
+            .from('user_tokens')
+            .update({
+              access_token: newTokens.access_token,
+              refresh_token: newTokens.refresh_token || tokens.refresh_token,
+              expires_at: newExpiresAt,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', tokens.user_id);
+          
+          return tokens.user_id;
+        }
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+      }
+      
+      return null;
+    }
+    
+    return tokens.user_id;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    return null;
+  }
+}
+
 function generateCodeVerifier() {
   return crypto.randomBytes(32).toString('base64url');
 }
@@ -139,8 +256,6 @@ app.get('/health', (req, res) => {
 // ============================================
 // OAUTH ENDPOINTS
 // ============================================
-
-// Start OAuth flow
 app.get('/auth/login', (req, res) => {
   try {
     const codeVerifier = generateCodeVerifier();
@@ -165,7 +280,7 @@ app.get('/auth/login', (req, res) => {
 
     res.cookie('oauth_session_id', sessionId, {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 10 * 60 * 1000,
     });
@@ -181,7 +296,6 @@ app.get('/auth/login', (req, res) => {
   }
 });
 
-// OAuth callback
 app.get('/auth/callback', async (req, res) => {
   try {
     const { code, state, error } = req.query;
@@ -241,7 +355,6 @@ app.get('/auth/callback', async (req, res) => {
     const userProfile = await userResponse.json();
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
     
-    // First, insert/update user
     const { error: userDbError } = await supabase
       .from('users')
       .upsert({
@@ -259,7 +372,6 @@ app.get('/auth/callback', async (req, res) => {
       return res.redirect('/?error=user_storage_failed');
     }
 
-    // Then, store tokens
     const { error: dbError } = await supabase
       .from('user_tokens')
       .upsert({
@@ -290,29 +402,73 @@ app.get('/auth/callback', async (req, res) => {
   }
 });
 
-// Get current user
 app.get('/auth/user', async (req, res) => {
   try {
+    // Check if user has valid tokens
+    const { data: tokens, error: tokenError } = await supabase
+      .from('user_tokens')
+      .select('user_id, expires_at')
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (tokenError || !tokens) {
+      return res.status(401).json({
+        authenticated: false,
+        error: 'Not authenticated',
+        message: 'Please login with Spotify'
+      });
+    }
+    
+    // Check if token is expired
+    const expiresAt = new Date(tokens.expires_at);
+    if (expiresAt < new Date()) {
+      return res.status(401).json({
+        authenticated: false,
+        error: 'Token expired',
+        message: 'Please login again'
+      });
+    }
+    
+    // Get user info
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', tokens.user_id)
+      .single();
+    
+    if (userError || !user) {
+      return res.status(401).json({
+        authenticated: false,
+        error: 'User not found',
+        message: 'Please login with Spotify'
+      });
+    }
+    
     res.json({
-      user: {
-        id: USER_ID,
-        display_name: 'Demo User',
-        email: 'demo@example.com',
-      },
       authenticated: true,
+      user: {
+        id: user.id,
+        display_name: user.display_name,
+        email: user.email,
+      }
     });
   } catch (error) {
     console.error('Auth user error:', error);
     res.status(500).json({
+      authenticated: false,
       error: 'Failed to get user info',
       message: error.message,
     });
   }
 });
 
-// Logout
 app.post('/auth/logout', async (req, res) => {
   try {
+    // In a real app, you would invalidate the token here
+    // For now, we just return success
+    // The frontend will handle clearing local state
+    
     res.json({
       success: true,
       message: 'Logged out successfully',
@@ -329,15 +485,11 @@ app.post('/auth/logout', async (req, res) => {
 // ============================================
 // API ENDPOINTS
 // ============================================
-
-// Get recent plays
 app.get('/api/recent', async (req, res) => {
   try {
     const { range } = req.query;
     const days = validateRange(range);
     
-    console.log(`Fetching recent plays for last ${days} days`);
-
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
 
@@ -357,8 +509,6 @@ app.get('/api/recent', async (req, res) => {
       });
     }
 
-    console.log(`Found ${data?.length || 0} plays in the last ${days} days`);
-
     res.json({
       plays: data || [],
       range: days,
@@ -374,9 +524,16 @@ app.get('/api/recent', async (req, res) => {
   }
 });
 
-// Get dashboard statistics
 app.get('/api/stats', async (req, res) => {
   try {
+    const userId = await getCurrentUser();
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Not authenticated',
+        message: 'Please login with Spotify first'
+      });
+    }
+
     const { range } = req.query;
     const days = validateRange(range);
     
@@ -386,7 +543,7 @@ app.get('/api/stats', async (req, res) => {
     const { data, error } = await supabase
       .from('spotify_plays')
       .select('track_id, track_name, artist, album, duration_ms, played_at')
-      .eq('user_id', USER_ID)
+      .eq('user_id', userId)
       .gte('played_at', cutoffDate.toISOString());
 
     if (error) throw error;
@@ -438,13 +595,10 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// Get top tracks
 app.get('/api/top/tracks', async (req, res) => {
-  console.log('=== /api/top/tracks endpoint called ===');
   try {
     const { limit = 20, time_range = 'short_term' } = req.query;
     
-    // Get the most recent user tokens from database
     const { data: tokens, error: tokenError } = await supabase
       .from('user_tokens')
       .select('access_token, user_id')
@@ -459,7 +613,6 @@ app.get('/api/top/tracks', async (req, res) => {
       });
     }
     
-    // Fetch top tracks from Spotify
     const response = await fetch(`https://api.spotify.com/v1/me/top/tracks?limit=${limit}&time_range=${time_range}`, {
       headers: { 'Authorization': `Bearer ${tokens.access_token}` }
     });
@@ -479,10 +632,8 @@ app.get('/api/top/tracks', async (req, res) => {
   }
 });
 
-// Get currently playing track
 app.get('/api/currently-playing', async (req, res) => {
   try {
-    // Get the most recent user tokens from database
     const { data: tokens, error: tokenError } = await supabase
       .from('user_tokens')
       .select('access_token, user_id')
@@ -497,13 +648,11 @@ app.get('/api/currently-playing', async (req, res) => {
       });
     }
     
-    // Fetch currently playing track from Spotify
     const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
       headers: { 'Authorization': `Bearer ${tokens.access_token}` }
     });
     
     if (response.status === 204) {
-      // No content - nothing is playing
       return res.json({ is_playing: false, item: null });
     }
     
@@ -522,7 +671,6 @@ app.get('/api/currently-playing', async (req, res) => {
   }
 });
 
-// Player controls
 app.put('/api/player/play', async (req, res) => {
   try {
     const { data: tokens } = await supabase
@@ -650,12 +798,10 @@ app.put('/api/player/seek', async (req, res) => {
   }
 });
 
-// Get top artists
 app.get('/api/top/artists', async (req, res) => {
   try {
     const { limit = 20, time_range = 'short_term' } = req.query;
     
-    // Get the most recent user tokens from database
     const { data: tokens, error: tokenError } = await supabase
       .from('user_tokens')
       .select('access_token, user_id')
@@ -670,7 +816,6 @@ app.get('/api/top/artists', async (req, res) => {
       });
     }
     
-    // Fetch top artists from Spotify
     const response = await fetch(`https://api.spotify.com/v1/me/top/artists?limit=${limit}&time_range=${time_range}`, {
       headers: { 'Authorization': `Bearer ${tokens.access_token}` }
     });
@@ -690,7 +835,6 @@ app.get('/api/top/artists', async (req, res) => {
   }
 });
 
-// Import Spotify history
 app.post('/api/import/spotify-history', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -754,13 +898,20 @@ app.post('/api/import/spotify-history', upload.single('file'), async (req, res) 
   }
 });
 
-// Get import status
 app.get('/api/import/status', async (req, res) => {
   try {
+    const userId = await getCurrentUser();
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Not authenticated',
+        message: 'Please login with Spotify first'
+      });
+    }
+
     const { data, error } = await supabase
       .from('import_uploads')
       .select('*')
-      .eq('user_id', USER_ID)
+      .eq('user_id', userId)
       .order('uploaded_at', { ascending: false })
       .limit(10);
 
@@ -779,7 +930,6 @@ app.get('/api/import/status', async (req, res) => {
   }
 });
 
-// Run deduplication
 app.post('/api/deduplication/run', async (req, res) => {
   try {
     console.log('Starting manual deduplication...');
@@ -807,7 +957,6 @@ app.post('/api/deduplication/run', async (req, res) => {
   }
 });
 
-// Get deduplication stats
 app.get('/api/deduplication/stats', async (req, res) => {
   try {
     const stats = await deduplicator.getDataSourceStats();
@@ -827,8 +976,6 @@ app.get('/api/deduplication/stats', async (req, res) => {
 // ============================================
 // ERROR HANDLERS (MUST BE LAST!)
 // ============================================
-
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ 
@@ -837,7 +984,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
 app.use((req, res, next) => {
   res.status(404).json({ 
     error: 'Not found',
@@ -875,6 +1021,12 @@ Available Endpoints:
     GET  /api/stats            - Dashboard statistics
     GET  /api/top/tracks       - Get top tracks from Spotify
     GET  /api/top/artists      - Get top artists from Spotify
+    GET  /api/currently-playing - Get currently playing track
+    PUT  /api/player/play      - Play
+    PUT  /api/player/pause     - Pause
+    POST /api/player/next      - Next track
+    POST /api/player/previous  - Previous track
+    PUT  /api/player/seek      - Seek position
     POST /api/import/spotify-history - Import history
     GET  /api/import/status    - Import status
     POST /api/deduplication/run - Run deduplication
